@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#bbbcbc"
+    android:orientation="vertical">
+
+    <!-- button 演示Java调用web -->
+    <Button
+        android:id="@+id/btn_calljsfunction"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Native调用Js方法"
+        />
+
+    <com.why.project.mybridgewebviewdemo.customwebview.jsbridgewebview.MyBridgeWebView
+        android:id="@+id/web_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"/>
+
+</LinearLayout>

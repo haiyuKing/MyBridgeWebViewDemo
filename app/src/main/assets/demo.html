@@ -1,0 +1,133 @@
+<html>
+    <head>
+        <meta content="text/html; charset=utf-8" http-equiv="content-type">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <title>
+            js和java互调
+        </title>
+    </head>
+    
+    <body>
+        <p>
+            <input type="text" id="show" style="width:100%;"/>
+        </p>
+        <p>
+            <input type="button" id="enter" value="js发消息给Native" onclick="sendMegToJava();"
+            />
+        </p>
+        <p>
+            <input type="button" id="enter1" value="js调用Native的方法" onclick="callJavaMethod();"
+            />
+        </p>
+        <p>
+            <input type="file" value="打开文件" />
+        </p>
+    </body>
+    <!--用于解析json数据-->
+    <script type="text/javascript" src="json2.js"></script>
+    <script>
+
+
+        //发消息给Native 按钮的点击事件
+        //发送的消息是到BridgeHandler子类的handler方法中进行匹配
+        function sendMegToJava() {
+            //尽量使用json数据
+            var message = "getNewData";//消息数据(可以直接是一个字符串，作为消息类型（比如getNewData）;也可以是一个json字符串，根据key值进行判断类型)
+            window.WebViewJavascriptBridge.send(
+                message
+                , function(responseData) {
+                    document.getElementById("show").value = responseData;
+                }
+            );
+        }
+
+        //调用Native方法  按钮的点击事件
+        //调用的java方法需要在activity界面中进行声明，参考initJsBridge()方法中的声明方法
+        function callJavaMethod() {
+            //尽量使用json数据
+            var dataObj = new Object();
+            dataObj.id = 153273;
+            dataObj.title = "这是一个标题"
+            dataObj.isNew = true;
+            var dataObjStr = JSON.stringify(dataObj);
+
+            //functionInJava : 在Activity界面的initJsBridge()中声明的方法
+            window.WebViewJavascriptBridge.callHandler(
+                'functionInJava'
+                , {'param': dataObjStr}
+                , function(responseData) {
+                    document.getElementById("show").value = responseData;
+                }
+            );
+        }
+
+        //java调用js方法实际执行的方法
+        function handleJavaData(dataObj){
+            document.getElementById("show").value = "用户名=" + dataObj.username + "；密码=" + dataObj.password;
+            return "登录成功呢";
+        }
+
+        /*=====================================JSBridge==================================================*/
+        //注册事件监听
+        function connectWebViewJavascriptBridge(callback) {
+            if (window.WebViewJavascriptBridge) {
+                callback(WebViewJavascriptBridge)
+            } else {
+                document.addEventListener(
+                    'WebViewJavascriptBridgeReady'
+                    , function() {
+                        callback(WebViewJavascriptBridge)
+                    },
+                    false
+                );
+            }
+        }
+        //注册回调函数，第一次连接时调用 初始化函数
+        connectWebViewJavascriptBridge(function(bridge) {
+            //初始化回调函数
+            bridge.init(function(message, responseCallback) {
+              var data = {
+                        'Javascript Responds': 'js初始化响应!'
+                    };
+              responseCallback(data);
+
+            });
+
+            //【Java调用的js方法】--用于js发送初始化后的消息给Java【由Java控制执行，在webviewClient的onPageFinished中执行】
+            //java执行onPageFinished后，调用这个方法；然后js发送消息给java；java接收并处理后回调js的initData()方法
+            bridge.registerHandler("sendMegToJavaFunctionInJs", function(data, responseCallback) {
+                //发送消息（onPageFinished 可以理解为handle的message.what），告诉java，HTML页面已经加载完成，可以开始请求接口获取数据了
+                window.WebViewJavascriptBridge.send(
+                    "onPageFinished"
+                    , function(responseData) {
+                        //responseData 可以理解为回调返回的字符串数据
+                        initData(responseData);
+                    }
+                );
+                responseCallback("js已发送消息给java");//java调用js方法，都要返回data数据，不过这里因为是初始化的操作，所以返回空值即可。
+            });
+
+            /*============================自定义java调用的js方法声明【根据实际情况声明方法】===========================================*/
+            //【Java调用的js方法】
+            bridge.registerHandler("functionInJs", function(data, responseCallback) {
+                //JSON.parse(jsonstr); //方法一：可以将json字符串转换成json对象
+                //JSON.stringify(jsonobj); //方法二：可以将json对象转换成json对符串
+
+                var dataObj = JSON.parse(data);//将发送过来的数据转为json对象
+
+                //一般都有一个配套的js方法，用于处理接收到的数据
+                var responseData = handleJavaData(dataObj);
+
+                responseCallback(responseData);
+            });
+        })
+
+        /*=====webviewClient的onPageFinished执行后，js发送消息给java，然后java处理后回调js的方法======*/
+        function initData(data){
+            console.log("{initData}data="+data);
+            //根据实际情况，进行赋值；或者不做任何处理
+            document.getElementById("show").value = data;
+        }
+    </script>
+
+</html>
